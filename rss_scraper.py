@@ -28,9 +28,10 @@ for url in rss_urls:
     source = feed.feed.title if "title" in feed.feed else "Unknown Source"
     print(f"Scraping articles from {source}")
 
-    # Get the current date and compute the threshold date for filtering (last 7 days)
+    # Identify yesterday's date
     current_date = datetime.utcnow().date()
-    threshold_date = current_date - timedelta(days=7)
+    threshold_date = current_date - timedelta(days=1)
+    week = "10/02 - 16/02"
 
     # List to store extracted articles
     articles = []
@@ -62,7 +63,6 @@ for url in rss_urls:
         categories = [category.text for category in entry.categories] if "categories" in entry else []
         description = clean_html_content(entry.summary)
         # extract content and clean it using html parser
-        # todo: change this so that if no content, open link and scrape from website using a class for scraping
         content = entry.content[0].value if "content" in entry else "No content available"
         clean_content = clean_html_content(content)
 
@@ -75,7 +75,8 @@ for url in rss_urls:
                 description=description,
                 content=clean_content,
                 pub_date=published_date,
-                scraped_date=current_date
+                scraped_date=current_date,
+                week=week
             )
             articles.append(article)
             print(f"Processed article {title}")

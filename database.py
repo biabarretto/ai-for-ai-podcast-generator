@@ -18,7 +18,8 @@ def create_table():
         description TEXT, 
         content TEXT,
         pub_date TEXT,
-        scraped_date TEXT
+        scraped_date TEXT, 
+        week TEXT
     )
     """)
 

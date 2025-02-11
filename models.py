@@ -11,6 +11,7 @@ class ScrapedArticle(BaseModel):
     content: str
     pub_date: datetime
     scraped_date: datetime
+    week: str
 
     @field_validator("category", mode="before")
     @classmethod
