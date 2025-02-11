@@ -8,12 +8,16 @@ from models import ScrapedArticle
 
 
 # Define the RSS feed URL
+# rss_urls = [ "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
+# "https://aimagazine.com/api/multi-feed?feedType=rss&limit=10&contentType=report&paged=1&paged=1",
+# "https://news.berkeley.edu/category/research/technology-engineering/feed/",
+# "https://techcrunch.com/feed/",
+# "https://www.wired.com/feed/tag/ai/latest/rss",
+# "https://techxplore.com/rss-feed/machine-learning-ai-news/",
+# "https://towardsdatascience.com/feed/",
+# "https://www.marktechpost.com/feed/",
+# "https://www.unite.ai/feed/", ]
 rss_urls = [ "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
-"https://aimagazine.com/api/multi-feed?feedType=rss&limit=10&contentType=report&paged=1&paged=1",
-"https://news.berkeley.edu/category/research/technology-engineering/feed/",
-"https://techcrunch.com/feed/",
-"https://www.wired.com/feed/tag/ai/latest/rss",
-"https://techxplore.com/rss-feed/machine-learning-ai-news/",
 "https://towardsdatascience.com/feed/",
 "https://www.marktechpost.com/feed/",
 "https://www.unite.ai/feed/", ]
@@ -25,11 +29,12 @@ for url in rss_urls:
     print(f"Scraping articles from {source}")
 
     # Get the current date and compute the threshold date for filtering (last 7 days)
-    current_date = datetime.utcnow()
+    current_date = datetime.utcnow().date()
     threshold_date = current_date - timedelta(days=7)
 
     # List to store extracted articles
     articles = []
+    total_n_articles = 0
 
     for entry in feed.entries:
         try:
@@ -44,7 +49,7 @@ for url in rss_urls:
                 break  # Stop if date parsing fails
 
         # Convert to naive UTC (remove timezone info)
-        published_date = published_date.replace(tzinfo=None)
+        published_date = published_date.replace(tzinfo=None).date()
 
         # Stop iteration if the article is older than 7 days
         if published_date < threshold_date:
@@ -80,6 +85,9 @@ for url in rss_urls:
     # Save articles in db
     insert_articles(articles)
     print(f"Inserted {len(articles)} articles")
+    total_n_articles += len(articles)
+
+print(f"Scraped {total_n_articles} articles")
 
 
 # Convert the list to a DataFrame

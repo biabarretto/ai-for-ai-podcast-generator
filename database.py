@@ -1,11 +1,11 @@
 import sqlite3
 
-DB_NAME = "scraped_articles.db"
+DB_PATH = "G:\My Drive\scraped_articles.db"
 
 
 def create_table():
     """Create the database table if it doesn't exist."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""

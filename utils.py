@@ -2,14 +2,14 @@ from bs4 import BeautifulSoup
 import re
 import sqlite3
 
-from database import DB_NAME
+from database import DB_PATH
 from models import ScrapedArticle
 
 __all__ = ["clean_html_content", "insert_articles", "get_articles"]  # Specify what to export when calling file
 
 def insert_articles(articles: list[ScrapedArticle]):
     """Insert a list of articles into SQLite."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     try:
@@ -17,9 +17,9 @@ def insert_articles(articles: list[ScrapedArticle]):
         article_data = [
             (
                 article.source,
-                article.link,
+                str(article.link),
                 article.title,
-                article.category,  # Already converted to a string
+                article.category_as_string(),  # Use method to convert to string
                 article.description,
                 article.content,
                 article.pub_date.isoformat(),
@@ -44,7 +44,7 @@ def insert_articles(articles: list[ScrapedArticle]):
 
 def get_articles():
     """Retrieve all stored articles from the database."""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("SELECT source, link, title, category, description, content, pub_date, scraped_date FROM articles")
