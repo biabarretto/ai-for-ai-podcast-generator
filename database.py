@@ -1,6 +1,6 @@
 import sqlite3
 
-DB_PATH = "G:\My Drive\scraped_articles.db"
+DB_PATH = r"G:\My Drive\scraped_articles.db"
 
 
 def create_table():

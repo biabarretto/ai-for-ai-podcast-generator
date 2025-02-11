@@ -23,15 +23,16 @@ def insert_articles(articles: list[ScrapedArticle]):
                 article.description,
                 article.content,
                 article.pub_date.isoformat(),
-                article.scraped_date.isoformat()
+                article.scraped_date.isoformat(),
+                article.week
             )
             for article in articles
         ]
 
         # Use executemany to insert multiple records at once
         cursor.executemany("""
-        INSERT INTO articles (source, link, title, category, description, content, pub_date, scraped_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO articles (source, link, title, category, description, content, pub_date, scraped_date, week)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, article_data)
 
         conn.commit()
@@ -47,7 +48,7 @@ def get_articles():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT source, link, title, category, description, content, pub_date, scraped_date FROM articles")
+    cursor.execute("SELECT source, link, title, category, description, content, pub_date, scraped_date, week FROM articles")
     rows = cursor.fetchall()
 
     articles = []
@@ -60,7 +61,8 @@ def get_articles():
             description=row[4],
             content=row[5],
             pub_date=datetime.fromisoformat(row[6]),
-            scraped_date=datetime.fromisoformat(row[7])
+            scraped_date=datetime.fromisoformat(row[7]),
+            week=row[8]
         )
         articles.append(article)
 

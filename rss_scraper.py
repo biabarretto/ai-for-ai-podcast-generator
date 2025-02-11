@@ -22,20 +22,23 @@ rss_urls = [ "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
 "https://www.marktechpost.com/feed/",
 "https://www.unite.ai/feed/", ]
 
+# Identify yesterday's date
+current_date = datetime.utcnow().date()
+threshold_date = current_date - timedelta(days=1)
+print(f"Scraping articles from {threshold_date}")
+# Define week value
+week = "10/02 - 16/02"
+
+total_n_articles = 0
+
 for url in rss_urls:
 
     feed = feedparser.parse(url)
     source = feed.feed.title if "title" in feed.feed else "Unknown Source"
     print(f"Scraping articles from {source}")
 
-    # Identify yesterday's date
-    current_date = datetime.utcnow().date()
-    threshold_date = current_date - timedelta(days=1)
-    week = "10/02 - 16/02"
-
     # List to store extracted articles
     articles = []
-    total_n_articles = 0
 
     for entry in feed.entries:
         try:
@@ -53,35 +56,34 @@ for url in rss_urls:
         published_date = published_date.replace(tzinfo=None).date()
 
         # Stop iteration if the article is older than 7 days
-        if published_date < threshold_date:
-            print("Scraped all relevant articles")
-            break  # RSS is chronological, so we can safely exit the loop
+        if published_date == threshold_date:
+            # Extract article details from the RSS feed itself
+            title = entry.title
+            link = entry.link
+            categories = [category.text for category in entry.categories] if "categories" in entry else []
+            description = clean_html_content(entry.summary)
+            # extract content and clean it using html parser
+            content = entry.content[0].value if "content" in entry else "No content available"
+            clean_content = clean_html_content(content)
 
-        # Extract article details from the RSS feed itself
-        title = entry.title
-        link = entry.link
-        categories = [category.text for category in entry.categories] if "categories" in entry else []
-        description = clean_html_content(entry.summary)
-        # extract content and clean it using html parser
-        content = entry.content[0].value if "content" in entry else "No content available"
-        clean_content = clean_html_content(content)
+            try:
+                article = ScrapedArticle(
+                    source=source,
+                    link=link,
+                    title=title,
+                    category=categories,
+                    description=description,
+                    content=clean_content,
+                    pub_date=published_date,
+                    scraped_date=current_date,
+                    week=week
+                )
+                articles.append(article)
+                print(f"Processed article {title}")
+            except Exception as e:
+                print(f"Error processing article {link} - {e}")
 
-        try:
-            article = ScrapedArticle(
-                source=source,
-                link=link,
-                title=title,
-                category=categories,
-                description=description,
-                content=clean_content,
-                pub_date=published_date,
-                scraped_date=current_date,
-                week=week
-            )
-            articles.append(article)
-            print(f"Processed article {title}")
-        except Exception as e:
-            print(f"Error processing article {link} - {e}")
+
 
     # Save articles in db
     insert_articles(articles)
@@ -90,9 +92,5 @@ for url in rss_urls:
 
 print(f"Scraped {total_n_articles} articles")
 
-
-# Convert the list to a DataFrame
-# df = pd.DataFrame(articles, columns=["Title", "Date_Published", "Link", "Description", "Content"])
-# df['Date_Scraped'] = current_date
 
 
