@@ -3,8 +3,8 @@ import re
 import sqlite3
 
 
-from database import DB_PATH
-from models import ScrapedArticle
+from data_model.database import DB_PATH
+from data_model.models import ScrapedArticle
 
 __all__ = ["clean_html_content", "insert_articles", "get_articles"]  # Specify what to export when calling file
 

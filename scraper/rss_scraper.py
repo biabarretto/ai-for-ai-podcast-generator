@@ -1,11 +1,10 @@
 import feedparser
-import pandas as pd
 from datetime import datetime, timedelta
 from dateutil import parser
 from markdownify import markdownify as md
 
-from utils import *
-from models import ScrapedArticle
+from scraper.utils import *
+from data_model.models import ScrapedArticle
 
 
 # Define the RSS feed URL
