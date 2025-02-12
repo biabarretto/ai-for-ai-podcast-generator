@@ -2,6 +2,7 @@ import feedparser
 from datetime import datetime, timedelta
 from dateutil import parser
 from markdownify import markdownify as md
+import re
 
 from scraper.utils import *
 from data_model.models import ScrapedArticle
@@ -56,7 +57,7 @@ for url in rss_urls:
         published_date = published_date.replace(tzinfo=None).date()
 
         # Scrape while pub_date is after the threshold_date
-        while published_date >= threshold_date:
+        if published_date >= threshold_date:
             # Extract article details from the RSS feed itself
             title = entry.title
             link = entry.link
@@ -65,6 +66,7 @@ for url in rss_urls:
             content = entry.content[0].value if "content" in entry else "No content available"
             # Convert HTML content to Markdown
             markdown_content = md(content)
+            markdown_content_clean = re.sub(r'\[([^\]]+)\]\((https?:\/\/[^\)]+)\)', r'\1', markdown_content)
 
             try:
                 article = ScrapedArticle(
@@ -73,7 +75,7 @@ for url in rss_urls:
                     title=title,
                     category=categories,
                     description=description,
-                    content=markdown_content,
+                    content=markdown_content_clean,
                     pub_date=published_date,
                     scraped_date=current_date,
                     week=week
