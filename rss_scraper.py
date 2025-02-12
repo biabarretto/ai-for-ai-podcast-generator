@@ -2,6 +2,7 @@ import feedparser
 import pandas as pd
 from datetime import datetime, timedelta
 from dateutil import parser
+from markdownify import markdownify as md
 
 from utils import *
 from models import ScrapedArticle
@@ -17,10 +18,10 @@ from models import ScrapedArticle
 # "https://towardsdatascience.com/feed/",
 # "https://www.marktechpost.com/feed/",
 # "https://www.unite.ai/feed/", ]
-rss_urls = [ "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
-"https://towardsdatascience.com/feed/",
-"https://www.marktechpost.com/feed/",
-"https://www.unite.ai/feed/", ]
+rss_urls = [ "https://towardsdatascience.com/feed/",
+    "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
+    "https://www.marktechpost.com/feed/",
+    "https://www.unite.ai/feed/", ]
 
 # Identify yesterday's date
 current_date = datetime.utcnow().date()
@@ -55,16 +56,16 @@ for url in rss_urls:
         # Convert to naive UTC (remove timezone info)
         published_date = published_date.replace(tzinfo=None).date()
 
-        # Stop iteration if the article is older than 7 days
-        if published_date == threshold_date:
+        # Scrape while pub_date is after the threshold_date
+        while published_date >= threshold_date:
             # Extract article details from the RSS feed itself
             title = entry.title
             link = entry.link
-            categories = [category.text for category in entry.categories] if "categories" in entry else []
+            categories = [tag["term"] for tag in getattr(entry, "tags", []) if "term" in tag]
             description = clean_html_content(entry.summary)
-            # extract content and clean it using html parser
             content = entry.content[0].value if "content" in entry else "No content available"
-            clean_content = clean_html_content(content)
+            # Convert HTML content to Markdown
+            markdown_content = md(content)
 
             try:
                 article = ScrapedArticle(
@@ -73,7 +74,7 @@ for url in rss_urls:
                     title=title,
                     category=categories,
                     description=description,
-                    content=clean_content,
+                    content=markdown_content,
                     pub_date=published_date,
                     scraped_date=current_date,
                     week=week
