@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import re
 import sqlite3
 
+
 from database import DB_PATH
 from models import ScrapedArticle
 
@@ -29,15 +30,16 @@ def insert_articles(articles: list[ScrapedArticle]):
             for article in articles
         ]
 
-        # Use executemany to insert multiple records at once
+        # Use `INSERT OR IGNORE` to skip duplicates
         cursor.executemany("""
-        INSERT INTO articles (source, link, title, category, description, content, pub_date, scraped_date, week)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, article_data)
-
+            INSERT OR IGNORE INTO articles 
+            (source, link, title, category, description, content, pub_date, scraped_date, week)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """, article_data)
         conn.commit()
-    except sqlite3.IntegrityError:
-        print("Skipping duplicate entry due to IntegrityError.")
+
+    except Exception as e:
+        print(f"Error inserting articles: {e}")
     finally:
         conn.close()
 
