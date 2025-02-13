@@ -66,7 +66,13 @@ for url in rss_urls:
             content = entry.content[0].value if "content" in entry else "No content available"
             # Convert HTML content to Markdown
             markdown_content = md(content)
-            markdown_content_clean = re.sub(r'\[([^\]]+)\]\((https?:\/\/[^\)]+)\)', r'\1', markdown_content)
+            # Remove Markdown images (e.g., ![alt text](image.png))
+            markdown_content_clean = re.sub(
+                r'!\[.*?\]\((https?:\/\/[^\)]+\.(?:png|jpg|jpeg|gif|svg|webp|bmp|ico|tiff))\)', '',
+                markdown_content, flags=re.IGNORECASE)
+            # Remove standard Markdown links but keep their text (excluding images)
+            markdown_content_clean = re.sub(r'\[([^\]]+)\]\((https?:\/\/[^\)]+)\)', r'\1',
+                                            markdown_content_clean)
 
             try:
                 article = ScrapedArticle(
