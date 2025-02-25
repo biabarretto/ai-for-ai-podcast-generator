@@ -1,12 +1,13 @@
 from bs4 import BeautifulSoup
 import re
 import sqlite3
+from datetime import datetime, timedelta
 
 
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
 
-__all__ = ["clean_html_content", "insert_articles", "get_articles"]  # Specify what to export when calling file
+__all__ = ["clean_html_content", "insert_articles", "get_articles", "get_week_range"]  # Specify what to export when calling file
 
 def insert_articles(articles: list[ScrapedArticle]):
     """Insert a list of articles into SQLite."""
@@ -86,3 +87,10 @@ def clean_html_content(html_content):
     clean_text = re.sub(r'[^\w\s.,]', '', clean_text)  # Keep periods and commas
 
     return clean_text.strip()
+
+
+def get_week_range(date):
+    """Given a date, return the start and end dates of the corresponding week (Monday-Sunday format)."""
+    start_of_week = date - timedelta(days=date.weekday())  # Get Monday of the week
+    end_of_week = start_of_week + timedelta(days=6)  # Get Sunday of the same week
+    return start_of_week.strftime("%d/%m"), end_of_week.strftime("%d/%m")

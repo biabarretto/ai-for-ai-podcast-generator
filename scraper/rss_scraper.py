@@ -8,16 +8,6 @@ from scraper.utils import *
 from data_model.models import ScrapedArticle
 
 
-# Define the RSS feed URL
-# rss_urls = [ "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
-# "https://aimagazine.com/api/multi-feed?feedType=rss&limit=10&contentType=report&paged=1&paged=1",
-# "https://news.berkeley.edu/category/research/technology-engineering/feed/",
-# "https://techcrunch.com/feed/",
-# "https://www.wired.com/feed/tag/ai/latest/rss",
-# "https://techxplore.com/rss-feed/machine-learning-ai-news/",
-# "https://towardsdatascience.com/feed/",
-# "https://www.marktechpost.com/feed/",
-# "https://www.unite.ai/feed/", ]
 rss_urls = [ "https://towardsdatascience.com/feed/",
     "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
     "https://www.marktechpost.com/feed/",
@@ -26,9 +16,11 @@ rss_urls = [ "https://towardsdatascience.com/feed/",
 # Identify yesterday's date
 current_date = datetime.utcnow().date()
 threshold_date = current_date - timedelta(days=1)
-print(f"Scraping articles from {threshold_date}")
+
 # Define week value
-week = "10/02 - 16/02"
+week_start, week_end = get_week_range(current_date)
+week = f"{week_start} - {week_end}"
+print(f"Scraping articles from {threshold_date} for week {week}")
 
 total_n_articles = 0
 
