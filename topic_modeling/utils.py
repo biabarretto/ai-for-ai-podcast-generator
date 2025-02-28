@@ -5,11 +5,35 @@ from datetime import datetime
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
 
+import re
+import unicodedata
+import nltk
+from nltk.corpus import stopwords
+
+# Ensure stopwords are downloaded
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+
+
 def clean_text(text):
-    "Cleans text data, removing markdown symbols, punctuation, and converting to lower-case"
+    """Cleans text: removes markdown, punctuation, stopwords, and normalizes spaces."""
+    if not isinstance(text, str):
+        return ""
+
+    # Remove markdown links
     text = re.sub(r'\[.*?\]\(.*?\)', '', text)
+    # Normalize unicode characters (e.g., accents)
+    text = unicodedata.normalize("NFKD", text)
+    # Remove punctuation (but keep words and spaces)
     text = re.sub(r'[^\w\s]', '', text)
+
+    # Convert to lowercase (optional: remove if using a cased model)
     text = text.lower()
+    # Remove stopwords
+    text = " ".join([word for word in text.split() if word not in stop_words])
+    # Remove extra whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
     return text
 
 
