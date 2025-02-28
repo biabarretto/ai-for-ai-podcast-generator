@@ -40,7 +40,7 @@ class TopicModelingPipeline:
             "Topic": topics,
             "Title": [article.title for article in self.articles],
             "Link": [article.link for article in self.articles],
-            "Content": self.texts
+            "Description": [article.description for article in self.articles]
         })
 
     def identify_top_topics(self, num_topics=3):

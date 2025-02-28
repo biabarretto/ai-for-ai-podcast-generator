@@ -46,8 +46,8 @@ def get_articles(week_value):
         )
         articles.append(article)
 
-        # Merge title and content for topic modeling (not description as usually is already included in content)
-        full_text = f"{article.title} {article.content}"
+        # Merge title and description for topic modeling
+        full_text = f"{article.title} {article.description}"
         texts.append(clean_text(full_text))  # Apply text cleaning
 
     return articles, texts
