@@ -4,6 +4,7 @@ from datetime import datetime
 
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
+from gensim.models.coherencemodel import CoherenceModel
 
 import re
 import unicodedata
@@ -27,10 +28,8 @@ def clean_text(text):
     # Remove punctuation (but keep words and spaces)
     text = re.sub(r'[^\w\s]', '', text)
 
-    # Convert to lowercase (optional: remove if using a cased model)
-    text = text.lower()
-    # Remove stopwords
-    text = " ".join([word for word in text.split() if word not in stop_words])
+    # Remove stopwords (preserve case)
+    text = " ".join([word for word in text.split() if word.lower() not in stop_words])
     # Remove extra whitespace
     text = re.sub(r'\s+', ' ', text).strip()
 
@@ -77,3 +76,17 @@ def get_articles(week_value):
     return articles, texts
 
 
+def compute_coherence_score(topic_model, texts):
+    """Computes coherence score using c_v metric from Gensim."""
+    # Get topics and their keywords
+    topics = topic_model.get_topics()
+
+    # Prepare data for coherence calculation
+    topic_words = [[word for word, _ in topic_model.get_topic(topic)] for topic in topics]
+    tokenized_texts = [text.split() for text in texts]  # Tokenize texts for Gensim
+
+    # Compute coherence using c_v metric
+    coherence_model = CoherenceModel(topics=topic_words, texts=tokenized_texts, coherence='c_v')
+    coherence_score = coherence_model.get_coherence()
+
+    return coherence_score
