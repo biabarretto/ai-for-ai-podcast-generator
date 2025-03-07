@@ -5,7 +5,7 @@ import pandas as pd
 import json
 
 
-from utils import get_articles
+from utils import get_articles, clean_text
 
 
 class TopicModelingPipeline:
@@ -36,7 +36,7 @@ class TopicModelingPipeline:
         print(f"Loaded {len(self.articles)} articles for week: {self.week_value}")
 
     def generate_embeddings(self):
-        """Generate embeddings for the articles using SentenceTransformer."""
+        """Generate embeddings for the articles using finetuned SentenceTransformer."""
         print("Generating embeddings...")
         return self.model.encode(self.texts, show_progress_bar=True)
 
@@ -55,6 +55,7 @@ class TopicModelingPipeline:
 
         # Merge title + description as input text
         df_train["text"] = df_train["title"] + " " + df_train["description"]
+        df_train["text"] = df_train["text"].apply(clean_text)
 
         # Create training examples
         train_examples = [InputExample(texts=[row["text"]], label=row["category"]) for _, row in df_train.iterrows()]
