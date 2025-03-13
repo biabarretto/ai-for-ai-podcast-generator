@@ -5,7 +5,7 @@ import pandas as pd
 import json
 
 
-from utils import get_articles, clean_text
+from utils import get_articles, clean_text, compute_coherence_score
 
 
 class TopicModelingPipeline:
@@ -58,6 +58,7 @@ class TopicModelingPipeline:
         df_train["text"] = df_train["text"].apply(clean_text)
 
         # Create training examples
+        df_train["category"] = df_train["category"].astype("category").cat.codes  # Convert to numeric codes
         train_examples = [InputExample(texts=[row["text"]], label=row["category"]) for _, row in df_train.iterrows()]
 
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=batch_size)
@@ -84,9 +85,11 @@ class TopicModelingPipeline:
         })
 
     def identify_top_topics(self, num_topics=3):
-        """Identify the top topics based on frequency and print meaningful summaries."""
-        self.top_topics = self.topic_model.get_topic_freq().head(num_topics)
+        """Identify the top topics based on frequency, get coherence score and print meaningful summaries."""
+        coherence_score_cased = compute_coherence_score(self.topic_model, self.texts)
+        print(f"Coherence Score (Cased Model): {coherence_score_cased:.4f}")
 
+        self.top_topics = self.topic_model.get_topic_freq().head(num_topics)
         print("\n🔹 Top Identified Topics:\n")
 
         for topic in self.top_topics["Topic"]:
@@ -153,7 +156,7 @@ class TopicModelingPipeline:
 
 # Execute the pipeline
 if __name__ == "__main__":
-    week_value = "10/02 - 16/02"
-    pipeline = TopicModelingPipeline(week_value)
+    week_value = "17/02 - 23/02"
+    pipeline = TopicModelingPipeline(week_value, 'training_data_2.csv')
     pipeline.run_pipeline()
 
