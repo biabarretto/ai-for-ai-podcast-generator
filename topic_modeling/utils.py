@@ -4,7 +4,8 @@ from datetime import datetime
 
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
-from gensim.models.coherencemodel import CoherenceModel
+from octis.evaluation_metrics.coherence_metrics import Coherence
+import numpy as np
 
 import re
 import unicodedata
@@ -77,16 +78,16 @@ def get_articles(week_value):
 
 
 def compute_coherence_score(topic_model, texts):
-    """Computes coherence score using c_v metric from Gensim."""
+    """Computes coherence score using c_v metric from Octis."""
     # Get topics and their keywords
     topics = topic_model.get_topics()
-
-    # Prepare data for coherence calculation
     topic_words = [[word for word, _ in topic_model.get_topic(topic)] for topic in topics]
-    tokenized_texts = [text.split() for text in texts]  # Tokenize texts for Gensim
 
-    # Compute coherence using c_v metric
-    coherence_model = CoherenceModel(topics=topic_words, texts=tokenized_texts, coherence='c_v')
-    coherence_score = coherence_model.get_coherence()
+    # Ensure texts are tokenized (list of words, not raw strings)
+    tokenized_texts = [text.split() for text in texts]
 
-    return coherence_score
+    # Compute coherence using Octis
+    coherence = Coherence(texts=tokenized_texts, measure="c_v")
+    coherence_score = coherence.score({"topics": topic_words})  # Wrap topics in a dictionary
+
+    return np.mean(coherence_score)  # Return the average coherence score

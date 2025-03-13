@@ -18,7 +18,7 @@ texts = df["text"].tolist()
 
 # --------------------- Test Uncased Model --------------------- #
 print("\n🚀 Testing Uncased Model (all-MiniLM-L6-v2)...")
-model_uncased = SentenceTransformer('all-MiniLM-L6-v2')
+model_uncased = SentenceTransformer('all-MiniLM-L6-v2')  # 384-dim
 
 # Generate embeddings
 embeddings_uncased = model_uncased.encode(texts, show_progress_bar=True)
@@ -35,8 +35,8 @@ coherence_score_uncased = compute_coherence_score(topic_model_uncased, texts)
 print(f"Coherence Score (Uncased Model): {coherence_score_uncased:.4f}")
 
 # --------------------- Test Cased Model --------------------- #
-print("\n🚀 Testing Cased Model (all-MiniLM-L12-cased)...")
-model_cased = SentenceTransformer('all-MiniLM-L12-cased')
+print("\n🚀 Testing Cased Model (bert-base-nli-mean-tokens)...")
+model_cased = SentenceTransformer("sentence-transformers/bert-base-nli-mean-tokens")  # 768-dim
 
 # Generate embeddings
 embeddings_cased = model_cased.encode(texts, show_progress_bar=True)
@@ -78,6 +78,6 @@ print(f"Average Topic Similarity Between Models: {avg_similarity:.4f}")
 
 # --------------------- Recommendations --------------------- #
 if coherence_score_cased > coherence_score_uncased:
-    print("\n📌 Recommendation: Use the Cased Model (all-MiniLM-L12-cased) for better topic coherence.")
+    print("\n📌 Recommendation: Use the Cased Model (bert-base-nli-mean-tokens) for better topic coherence.")
 else:
     print("\n📌 Recommendation: Use the Uncased Model (all-MiniLM-L6-v2) for faster performance and similar coherence.")
