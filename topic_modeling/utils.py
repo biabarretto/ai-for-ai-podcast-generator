@@ -4,7 +4,7 @@ from datetime import datetime
 
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
-from octis.evaluation_metrics.coherence_metrics import Coherence
+#from octis.evaluation_metrics.coherence_metrics import Coherence
 import numpy as np
 
 import re
