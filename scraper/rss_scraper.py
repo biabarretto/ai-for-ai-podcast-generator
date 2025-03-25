@@ -54,7 +54,8 @@ for url in rss_urls:
             title = entry.title
             link = entry.link
             categories = [tag["term"] for tag in getattr(entry, "tags", []) if "term" in tag]
-            description = clean_html_content(entry.summary)
+            description = remove_post_footer(entry.summary)
+            description = clean_html_content(description)
             content = entry.content[0].value if "content" in entry else "No content available"
             # Convert HTML content to Markdown
             markdown_content = md(content)

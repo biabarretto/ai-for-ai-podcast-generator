@@ -20,12 +20,12 @@ class TopicModelingPipeline:
         self.articles = []
         self.texts = []
         # model = SentenceTransformer("all-mpnet-base-v2")  todo: test this embedding model which might be best for nuanced AI text
-        # self.embedding_model = 'all-distilroberta-v1'
         self.embedding_model = 'all-MiniLM-L6-v2'
         self.model = SentenceTransformer(self.embedding_model)
 
+        stop_words = ["ai", "language", "model", "models", "data", "tools", "research"]
         vectorizer = CountVectorizer(
-            stop_words=["ai", "language", "model", "models", "data", "tools"],  # exclude generic words when extracting top-n words for each topic
+            stop_words=stop_words,  # exclude generic words when extracting top-n words for each topic
             ngram_range=(1, 2),  # capture "language model", "deep learning"
             min_df=2  # ignore words that appear only once
             # max_df=0.8  # ignore overly common terms
@@ -84,16 +84,12 @@ class TopicModelingPipeline:
             "Content": self.texts
         })
 
-        # Ensure all values are strings
-        # self.df["Title"] = self.df["Title"].astype(str)
-        # self.df["Link"] = self.df["Link"].astype(str)
-        # self.df["Content"] = self.df["Content"].astype(str)
-
     def identify_top_topics(self, num_topics=3):
         """Identify the top topics based on frequency and print meaningful summaries."""
-        self.top_topics = self.topic_model.get_topic_freq().head(num_topics)
+        self.top_topics = self.topic_model.get_topic_freq()
+        main_topics = self.top_topics.head(num_topics)
         print("\n🔹 Top Identified Topics:\n")
-        for topic in self.top_topics["Topic"]:
+        for topic in main_topics["Topic"]:
             topic_words = self.topic_model.get_topic(topic)
             topic_keywords = ", ".join([word[0] for word in topic_words[:5]])
             print(f"📌 **Topic {topic}:** {topic_keywords}")
@@ -128,21 +124,21 @@ class TopicModelingPipeline:
                 json.dump(formatted_articles, f, indent=4, ensure_ascii=False)
             print(f"Saved {filename} for NotebookLM summarization.")
 
-    def visualize_topics(self):
+    def visualize_topics(self, run_number):
         """Generate visualizations for topic modeling."""
-        bar_chart = self.topic_model.visualize_barchart(top_n_topics=3)
-        bar_chart.write_html("bar_chart.html")
+        bar_chart = self.topic_model.visualize_barchart()
+        bar_chart.write_html(f"bar_chart_run{run_number}.html")
 
         topics_vis = self.topic_model.visualize_topics()
-        topics_vis.write_html("topic_map.html")
+        topics_vis.write_html(f"topic_map_run{run_number}.html")
 
     def run_pipeline(self):
         """Execute the entire topic modeling pipeline."""
         self.load_articles()
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
-        self.identify_top_topics()
-        self.visualize_topics()
+        self.identify_top_topics(num_topics=5)
+        self.visualize_topics(run_number=3)
         #self.save_articles_by_topic()
 
 # Execute the pipeline

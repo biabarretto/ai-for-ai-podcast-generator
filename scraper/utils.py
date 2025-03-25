@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
 
-__all__ = ["clean_html_content", "insert_articles", "get_articles", "get_week_range"]  # Specify what to export when calling file
+__all__ = ["clean_html_content", "insert_articles", "get_articles", "get_week_range", "remove_post_footer"]  # Specify what to export when calling file
 
 def insert_articles(articles: list[ScrapedArticle]):
     """Insert a list of articles into SQLite."""
@@ -72,6 +72,17 @@ def get_articles():
     conn.close()
     return articles
 
+
+def remove_post_footer(html_content):
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Find the <p> tag that starts with "The post"
+    for p in soup.find_all("p"):
+        if p.get_text(strip=True).startswith("The post"):
+            p.decompose()  # remove the tag from the soup
+            break
+
+    return str(soup)
 
 def clean_html_content(html_content):
     """

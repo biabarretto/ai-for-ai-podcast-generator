@@ -36,6 +36,15 @@ def clean_text(text):
 
     return text
 
+def clean_plain_text(text):
+    """
+    Cleans plain text (like article titles) to match cleaned HTML content.
+    """
+    clean_text = re.sub(r'\s+', ' ', text)                    # Normalize whitespace
+    clean_text = re.sub(r'&[a-z]+;', '', clean_text)          # Remove HTML entities
+    clean_text = re.sub(r'[^\w\s.,]', '', clean_text)         # Keep only letters, digits, spaces, periods, and commas
+    return clean_text.strip()
+
 
 def get_articles(week_value):
     """Retrieve articles from the database for a specific week and format them for topic modeling.
@@ -71,8 +80,12 @@ def get_articles(week_value):
         articles.append(article)
 
         # Merge title and description for topic modeling
-        full_text = f"{article.title} {article.description}"
-        texts.append(clean_text(full_text))  # Apply text cleaning
+        full_text = f"{clean_plain_text(article.title)} {article.description}"
+        # Remove text that contains source name
+        marker = f"The post {clean_plain_text(article.title)}"
+        cut_text = full_text.split(marker)[0].strip()
+
+        texts.append(clean_text(cut_text))  # Apply text cleaning
 
     return articles, texts
 
