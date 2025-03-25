@@ -3,7 +3,12 @@ from bertopic import BERTopic
 import pandas as pd
 import json
 from utils import get_articles, clean_text, compute_coherence_score
-from sklearn.cluster import KMeans
+from sklearn.feature_extraction.text import CountVectorizer
+import os
+
+# from hdbscan import HDBSCAN
+
+
 
 import numpy as np
 
@@ -14,9 +19,26 @@ class TopicModelingPipeline:
         self.week_value = week_value
         self.articles = []
         self.texts = []
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        # model = SentenceTransformer("all-mpnet-base-v2")  todo: test this embedding model which might be best for nuanced AI text
+        # self.embedding_model = 'all-distilroberta-v1'
+        self.embedding_model = 'all-MiniLM-L6-v2'
+        self.model = SentenceTransformer(self.embedding_model)
 
-        self.topic_model = BERTopic(min_topic_size=5)
+        vectorizer = CountVectorizer(
+            stop_words=["ai", "language", "model", "models", "data", "tools"],  # exclude generic words when extracting top-n words for each topic
+            ngram_range=(1, 2),  # capture "language model", "deep learning"
+            min_df=2  # ignore words that appear only once
+            # max_df=0.8  # ignore overly common terms
+        )
+        self.topic_model = BERTopic(min_topic_size=5, vectorizer_model=vectorizer)
+        # bert topic with hdbscan and umap
+        # hdbscan_model = HDBSCAN(min_cluster_size=5, min_samples=1, prediction_data=True)
+        # topic_model = BERTopic(
+        #     embedding_model=model,
+        #     hdbscan_model=hdbscan_model,
+        #     vectorizer_model=vectorizer_model,
+        #     umap_model=UMAP(n_neighbors=15, n_components=5, min_dist=0.0, metric='cosine')
+        # )
 
         self.df = None
         self.top_topics = None
@@ -35,13 +57,23 @@ class TopicModelingPipeline:
 
     def generate_embeddings(self):
         """Generate embeddings for the articles using SentenceTransformer."""
-        print("Generating embeddings...")
-        return self.model.encode(self.texts, show_progress_bar=True)
+        week = self.week_value.replace("/", "-")
+        embedding_path = f"embeddings_{self.embedding_model}_{week}.npy"
+
+        if os.path.exists(embedding_path):
+            print("📂 Loading cached embeddings...")
+            embeddings = np.load(embedding_path)
+        else:
+            print("⚙️ Generating embeddings...")
+            embeddings = self.model.encode(self.texts, show_progress_bar=True)
+            np.save(embedding_path, embeddings)
 
     def fit_model(self, embeddings):
         """Fit BERTopic model to the text embeddings."""
         print("Fitting BERTopic model...")
         topics, _ = self.topic_model.fit_transform(self.texts, embeddings)
+        # self.topic_model.reduce_frequent_words(threshold=0.5)  # removes words that appear in more than 50% of topics
+        # would need to update bert in order to use this
 
         assert len(self.texts) == len(self.articles) == len(topics), "Mismatch in lengths after filtering!"
         # Store results in a DataFrame
@@ -53,9 +85,9 @@ class TopicModelingPipeline:
         })
 
         # Ensure all values are strings
-        self.df["Title"] = self.df["Title"].astype(str)
-        self.df["Link"] = self.df["Link"].astype(str)
-        self.df["Content"] = self.df["Content"].astype(str)
+        # self.df["Title"] = self.df["Title"].astype(str)
+        # self.df["Link"] = self.df["Link"].astype(str)
+        # self.df["Content"] = self.df["Content"].astype(str)
 
     def identify_top_topics(self, num_topics=3):
         """Identify the top topics based on frequency and print meaningful summaries."""
