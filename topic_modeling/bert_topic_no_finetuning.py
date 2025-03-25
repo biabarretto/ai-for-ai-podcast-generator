@@ -22,7 +22,7 @@ class TopicModelingPipeline:
         self.model = SentenceTransformer(self.embedding_model)
 
         stop_words = ["ai", "language", "model", "models", "data", "tools", "research", "million",
-                      "intelligence", "researchers"]
+                      "intelligence", "researchers", "interview", "series"]
         vectorizer = CountVectorizer(
             stop_words=stop_words,  # exclude generic words when extracting top-n words for each topic
             ngram_range=(1, 2),  # capture "language model", "deep learning"
@@ -84,12 +84,12 @@ class TopicModelingPipeline:
 
     def identify_top_topics(self, num_topics=3):
         """Identify the top topics based on frequency and print meaningful summaries."""
-        self.top_topics = self.topic_model.get_topic_freq()
-        main_topics = self.top_topics.head(num_topics)
+        self.top_topics = self.topic_model.get_topic_freq()  # todo: save only top 3 topics here
+        # self.top_topics = self.topic_model.get_topic_freq().head(num_topics)
         print("\n🔹 Top Identified Topics:\n")
         for topic in main_topics["Topic"]:
             topic_words = self.topic_model.get_topic(topic)
-            topic_keywords = ", ".join([word[0] for word in topic_words[:5]])
+            topic_keywords = ", ".join([word[0] for word in topic_words[:8]])
             print(f"📌 **Topic {topic}:** {topic_keywords}")
 
             rep_docs = self.topic_model.get_representative_docs(topic)
@@ -99,7 +99,7 @@ class TopicModelingPipeline:
                 print(f"     {i + 1}. {preview}\n")
         print("\n")
 
-    def save_articles_by_topic(self):
+    def save_articles_by_topic(self, save=True):
         """Group articles by top topics and save them in JSON format for NotebookLM."""
         top_articles = self.df[self.df["Topic"].isin(self.top_topics["Topic"])]
         self.articles_by_topic = {
@@ -107,20 +107,21 @@ class TopicModelingPipeline:
             for topic in self.top_topics["Topic"]
         }
 
-        for topic, articles in self.articles_by_topic.items():
-            formatted_articles = [
-                {
-                    "title": article["Title"],
-                    "link": article["Link"],
-                    "content": article["Content"],
-                    "source": f"Source: {article['Title']} ({article['Link']})"
-                }
-                for article in articles
-            ]
-            filename = f"topic_{topic}.json"
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(formatted_articles, f, indent=4, ensure_ascii=False)
-            print(f"Saved {filename} for NotebookLM summarization.")
+        if save:
+            for topic, articles in self.articles_by_topic.items():
+                formatted_articles = [
+                    {
+                        "title": article["Title"],
+                        "link": article["Link"],
+                        "content": article["Content"],
+                        "source": f"Source: {article['Title']} ({article['Link']})"
+                    }
+                    for article in articles
+                ]
+                filename = f"topic_{topic}.json"
+                with open(filename, "w", encoding="utf-8") as f:
+                    json.dump(formatted_articles, f, indent=4, ensure_ascii=False)
+                print(f"Saved {filename} for NotebookLM summarization.")
 
     def visualize_topics(self, run_number):
         """Generate visualizations for topic modeling."""
@@ -136,8 +137,8 @@ class TopicModelingPipeline:
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
         self.identify_top_topics(num_topics=10)
-        self.visualize_topics(run_number=3)
-        #self.save_articles_by_topic()
+        self.visualize_topics(run_number=4)
+        self.save_articles_by_topic(save=False)
 
 # Execute the pipeline
 if __name__ == "__main__":
