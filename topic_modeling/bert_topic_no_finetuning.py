@@ -6,10 +6,8 @@ from utils import get_articles, clean_text, compute_coherence_score
 from sklearn.feature_extraction.text import CountVectorizer
 import os
 
-# from hdbscan import HDBSCAN
-
-
-
+from hdbscan import HDBSCAN
+from umap import UMAP
 import numpy as np
 
 class TopicModelingPipeline:
@@ -23,22 +21,22 @@ class TopicModelingPipeline:
         self.embedding_model = 'all-MiniLM-L6-v2'
         self.model = SentenceTransformer(self.embedding_model)
 
-        stop_words = ["ai", "language", "model", "models", "data", "tools", "research"]
+        stop_words = ["ai", "language", "model", "models", "data", "tools", "research", "million",
+                      "intelligence", "researchers"]
         vectorizer = CountVectorizer(
             stop_words=stop_words,  # exclude generic words when extracting top-n words for each topic
             ngram_range=(1, 2),  # capture "language model", "deep learning"
             min_df=2  # ignore words that appear only once
             # max_df=0.8  # ignore overly common terms
         )
-        self.topic_model = BERTopic(min_topic_size=5, vectorizer_model=vectorizer)
         # bert topic with hdbscan and umap
-        # hdbscan_model = HDBSCAN(min_cluster_size=5, min_samples=1, prediction_data=True)
-        # topic_model = BERTopic(
-        #     embedding_model=model,
-        #     hdbscan_model=hdbscan_model,
-        #     vectorizer_model=vectorizer_model,
-        #     umap_model=UMAP(n_neighbors=15, n_components=5, min_dist=0.0, metric='cosine')
-        # )
+        hdbscan_model = HDBSCAN(min_cluster_size=5, min_samples=1, prediction_data=True)
+        self.topic_model = BERTopic(
+            embedding_model=self.model,
+            hdbscan_model=hdbscan_model,
+            vectorizer_model=vectorizer,
+            umap_model=UMAP(n_neighbors=5, n_components=5, min_dist=0.0, metric='cosine')
+        )
 
         self.df = None
         self.top_topics = None
@@ -137,7 +135,7 @@ class TopicModelingPipeline:
         self.load_articles()
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
-        self.identify_top_topics(num_topics=5)
+        self.identify_top_topics(num_topics=10)
         self.visualize_topics(run_number=3)
         #self.save_articles_by_topic()
 
