@@ -35,11 +35,6 @@ def clean_text(text):
     # Remove punctuation (but keep words and spaces)
     text = re.sub(r'[^\w\s]', '', text)
 
-    # Remove stopwords (preserve case)
-    text = " ".join([word for word in text.split() if word.lower() not in stop_words])
-    # Remove extra whitespace
-    text = re.sub(r'\s+', ' ', text).strip()
-
     return text
 
 def clean_plain_text(text):

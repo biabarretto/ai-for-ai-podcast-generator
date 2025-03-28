@@ -19,8 +19,7 @@ class TopicModelingPipeline:
         self.week_value = week_value
         self.articles = []
         self.texts = []
-        # model = SentenceTransformer("all-mpnet-base-v2")  todo: test this embedding model which might be best for nuanced AI text
-        self.embedding_model = 'all-MiniLM-L6-v2'
+        self.embedding_model = 'all-mpnet-base-v2'  # all-MiniLM-L6-v2
         self.model = SentenceTransformer(self.embedding_model)
 
         stop_words = ["ai", "language", "model", "models", "data", "tools", "research", "million",
@@ -160,7 +159,7 @@ class TopicModelingPipeline:
         self.fit_model(embeddings)
         self.identify_top_topics(num_topics=10)
         self.evaluate_model()
-        self.visualize_topics(run_number=8)
+        self.visualize_topics(run_number=10)
         if save:
             self.save_articles_by_topic()
 
