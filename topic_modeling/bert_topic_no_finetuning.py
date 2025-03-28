@@ -28,8 +28,8 @@ class TopicModelingPipeline:
         vectorizer = CountVectorizer(
             stop_words=stop_words,  # exclude generic words when extracting top-n words for each topic
             ngram_range=(1, 2),  # capture "language model", "deep learning"
-            min_df=2,  # ignore words that appear only once
-            max_df=0.8  # ignore overly common terms
+            min_df=0.03,  # exclude words that don't appear in at least this amount of documents
+            max_df=0.8  # remove any word that appears in more than 80% of all documents
         )
         # bert topic with hdbscan and umap
         hdbscan_model = HDBSCAN(min_cluster_size=5, min_samples=1, prediction_data=True)
@@ -160,7 +160,7 @@ class TopicModelingPipeline:
         self.fit_model(embeddings)
         self.identify_top_topics(num_topics=10)
         self.evaluate_model()
-        self.visualize_topics(run_number=7)
+        self.visualize_topics(run_number=8)
         if save:
             self.save_articles_by_topic()
 
