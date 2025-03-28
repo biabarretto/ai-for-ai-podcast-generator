@@ -2,14 +2,16 @@ from sentence_transformers import SentenceTransformer
 from bertopic import BERTopic
 import pandas as pd
 import json
-from utils import get_articles, clean_text, compute_coherence_score
+from utils import get_articles, evaluate_coherence, evaluate_diversity_redundancy, evaluate_stability
 from sklearn.feature_extraction.text import CountVectorizer
 import os
-
 from hdbscan import HDBSCAN
 from umap import UMAP
 import numpy as np
+import random
 
+random.seed(42)
+np.random.seed(42)
 class TopicModelingPipeline:
     """Pipeline for retrieving, processing, and analyzing articles using BERTopic."""
 
@@ -26,8 +28,8 @@ class TopicModelingPipeline:
         vectorizer = CountVectorizer(
             stop_words=stop_words,  # exclude generic words when extracting top-n words for each topic
             ngram_range=(1, 2),  # capture "language model", "deep learning"
-            min_df=2  # ignore words that appear only once
-            # max_df=0.8  # ignore overly common terms
+            min_df=2,  # ignore words that appear only once
+            max_df=0.8  # ignore overly common terms
         )
         # bert topic with hdbscan and umap
         hdbscan_model = HDBSCAN(min_cluster_size=5, min_samples=1, prediction_data=True)
@@ -35,7 +37,7 @@ class TopicModelingPipeline:
             embedding_model=self.model,
             hdbscan_model=hdbscan_model,
             vectorizer_model=vectorizer,
-            umap_model=UMAP(n_neighbors=5, n_components=5, min_dist=0.0, metric='cosine')
+            umap_model=UMAP(n_neighbors=5, n_components=5, min_dist=0.0, metric='cosine', random_state=42)
         )
 
         self.df = None
@@ -54,17 +56,30 @@ class TopicModelingPipeline:
         print(f"Loaded {len(self.articles)} articles for week: {self.week_value}")
 
     def generate_embeddings(self):
-        """Generate embeddings for the articles using SentenceTransformer."""
-        week = self.week_value.replace("/", "-")
-        embedding_path = f"embeddings_{self.embedding_model}_{week}.npy"
+        """Generate or load embeddings for one or multiple weeks of articles."""
+        week_values = self.week_value if isinstance(self.week_value, list) else [self.week_value]
+        all_embeddings = []
 
-        if os.path.exists(embedding_path):
-            print("📂 Loading cached embeddings...")
-            embeddings = np.load(embedding_path)
-        else:
-            print("⚙️ Generating embeddings...")
-            embeddings = self.model.encode(self.texts, show_progress_bar=True)
-            np.save(embedding_path, embeddings)
+        # Ensure the embeddings folder exists
+        os.makedirs("embeddings", exist_ok=True)
+
+        for week in week_values:
+            safe_week = week.replace("/", "-")
+            embedding_path = os.path.join("embeddings", f"embeddings_{self.embedding_model}_{safe_week}.npy")
+
+            week_texts = [text for article, text in zip(self.articles, self.texts) if article.week == week]
+
+            if os.path.exists(embedding_path):
+                print(f"📂 Loading cached embeddings for {week}...")
+                embeddings = np.load(embedding_path)
+            else:
+                print(f"⚙️ Generating embeddings for {week}...")
+                embeddings = self.model.encode(week_texts, show_progress_bar=True)
+                np.save(embedding_path, embeddings)
+
+            all_embeddings.extend(embeddings)
+
+        return np.array(all_embeddings)
 
     def fit_model(self, embeddings):
         """Fit BERTopic model to the text embeddings."""
@@ -84,10 +99,11 @@ class TopicModelingPipeline:
 
     def identify_top_topics(self, num_topics=3):
         """Identify the top topics based on frequency and print meaningful summaries."""
-        self.top_topics = self.topic_model.get_topic_freq()  # todo: save only top 3 topics here
-        # self.top_topics = self.topic_model.get_topic_freq().head(num_topics)
-        print("\n🔹 Top Identified Topics:\n")
-        for topic in main_topics["Topic"]:
+        topics = self.topic_model.get_topic_freq()
+        print(f"{len(topics)} topics identified")
+        self.top_topics = topics.head(num_topics)
+        print("\n🔹 Top Topics:\n")
+        for topic in self.top_topics["Topic"]:
             topic_words = self.topic_model.get_topic(topic)
             topic_keywords = ", ".join([word[0] for word in topic_words[:8]])
             print(f"📌 **Topic {topic}:** {topic_keywords}")
@@ -99,6 +115,11 @@ class TopicModelingPipeline:
                 print(f"     {i + 1}. {preview}\n")
         print("\n")
 
+    def evaluate_model(self):
+        evaluate_coherence(self.topic_model, self.texts)
+        evaluate_diversity_redundancy(self.topic_model)
+        evaluate_stability(self.topic_model, self.texts, self.model)
+
     def save_articles_by_topic(self, save=True):
         """Group articles by top topics and save them in JSON format for NotebookLM."""
         top_articles = self.df[self.df["Topic"].isin(self.top_topics["Topic"])]
@@ -107,41 +128,45 @@ class TopicModelingPipeline:
             for topic in self.top_topics["Topic"]
         }
 
-        if save:
-            for topic, articles in self.articles_by_topic.items():
-                formatted_articles = [
-                    {
-                        "title": article["Title"],
-                        "link": article["Link"],
-                        "content": article["Content"],
-                        "source": f"Source: {article['Title']} ({article['Link']})"
-                    }
-                    for article in articles
-                ]
-                filename = f"topic_{topic}.json"
-                with open(filename, "w", encoding="utf-8") as f:
-                    json.dump(formatted_articles, f, indent=4, ensure_ascii=False)
-                print(f"Saved {filename} for NotebookLM summarization.")
+        for topic, articles in self.articles_by_topic.items():
+            formatted_articles = [
+                {
+                    "title": article["Title"],
+                    "link": article["Link"],
+                    "content": article["Content"],
+                    "source": f"Source: {article['Title']} ({article['Link']})"
+                }
+                for article in articles
+            ]
+            filename = f"topic_{topic}.json"
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(formatted_articles, f, indent=4, ensure_ascii=False)
+            print(f"Saved {filename} for NotebookLM summarization.")
 
     def visualize_topics(self, run_number):
-        """Generate visualizations for topic modeling."""
+        """Generate visualizations and save them to charts/ subfolder."""
+        os.makedirs("charts", exist_ok=True)
+
         bar_chart = self.topic_model.visualize_barchart()
-        bar_chart.write_html(f"bar_chart_run{run_number}.html")
+        bar_chart.write_html(f"charts/bar_chart_run{run_number}.html")
 
         topics_vis = self.topic_model.visualize_topics()
-        topics_vis.write_html(f"topic_map_run{run_number}.html")
+        topics_vis.write_html(f"charts/topic_map_run{run_number}.html")
 
-    def run_pipeline(self):
+    def run_pipeline(self, save=True):
         """Execute the entire topic modeling pipeline."""
         self.load_articles()
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
         self.identify_top_topics(num_topics=10)
-        self.visualize_topics(run_number=4)
-        self.save_articles_by_topic(save=False)
+        self.evaluate_model()
+        self.visualize_topics(run_number=7)
+        if save:
+            self.save_articles_by_topic()
 
 # Execute the pipeline
 if __name__ == "__main__":
+    # week_value = ["10/02 - 16/02", "17/02 - 23/02", "24/02 - 02/03"]
     week_value = "17/02 - 23/02"
     pipeline = TopicModelingPipeline(week_value)
-    pipeline.run_pipeline()
+    pipeline.run_pipeline(save=False)
