@@ -93,12 +93,13 @@ class TopicModelingPipeline:
             "Topic": topics,
             "Title": [article.title for article in self.articles],
             "Link": [article.link for article in self.articles],
-            "Content": self.texts
+            "Content": [article.content for article in self.articles]
         })
 
     def identify_top_topics(self, num_topics=3):
         """Identify the top topics based on frequency and print meaningful summaries."""
         topics = self.topic_model.get_topic_freq()
+        topics = topics[topics["Topic"] != -1]  # Remove outliers
         print(f"{len(topics)} topics identified")
         self.top_topics = topics.head(num_topics)
         print("\n🔹 Top Topics:\n")
@@ -114,33 +115,53 @@ class TopicModelingPipeline:
                 print(f"     {i + 1}. {preview}\n")
         print("\n")
 
-    def evaluate_model(self):
-        evaluate_coherence(self.topic_model, self.texts)
-        evaluate_diversity_redundancy(self.topic_model)
-        evaluate_topic_quality_with_bertscore(self.topic_model)
+    def evaluate_all_metrics(self, evaluation_results_df: pd.DataFrame):
+        """Evaluate all metrics and append results to a shared DataFrame."""
+        print(f"📊 Running evaluation for: {self.week_value}")
 
-    def save_articles_by_topic(self, save=True):
-        """Group articles by top topics and save them in JSON format for NotebookLM."""
+        coherence = evaluate_coherence(self.topic_model, self.texts)
+        diversity, redundancy = evaluate_diversity_redundancy(self.topic_model)
+        bertscore = evaluate_topic_quality_with_bertscore(self.topic_model)
+
+        row = {
+            "Week": self.week_value,
+            "Coherence": coherence,
+            "Diversity": diversity,
+            "Redundancy": redundancy,
+            "BERTScore": bertscore
+        }
+
+        evaluation_results_df.loc[len(evaluation_results_df)] = row
+
+    def save_articles_by_topic(self):
+        """Group articles by top topics and save them in Markdown format for NotebookLM."""
         top_articles = self.df[self.df["Topic"].isin(self.top_topics["Topic"])]
         self.articles_by_topic = {
             topic: top_articles[top_articles["Topic"] == topic][["Title", "Link", "Content"]].to_dict(orient="records")
             for topic in self.top_topics["Topic"]
         }
 
-        for topic, articles in self.articles_by_topic.items():
-            formatted_articles = [
-                {
-                    "title": article["Title"],
-                    "link": article["Link"],
-                    "content": article["Content"],
-                    "source": f"Source: {article['Title']} ({article['Link']})"
-                }
-                for article in articles
-            ]
-            filename = f"topic_{topic}.json"
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(formatted_articles, f, indent=4, ensure_ascii=False)
-            print(f"Saved {filename} for NotebookLM summarization.")
+        os.makedirs("topics", exist_ok=True)
+        safe_week = self.week_value.replace("/", "-")
+
+        for topic in self.top_topics["Topic"]:
+            topic_words = self.topic_model.get_topic(topic)
+            keywords = ", ".join([word[0] for word in topic_words[:8]])
+
+            md_path = os.path.join("topics", f"{safe_week}_topic_{topic}.md")
+
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(f"# Topic {topic}\n")
+                f.write(
+                    f"**The following articles were grouped together and are described by the words:** {keywords}\n\n")
+
+                for article in self.articles_by_topic[topic][:15]:
+                    f.write(f"## {article['Title']}\n")
+                    f.write(f"**Link:** {str(article['Link'])}\n\n")
+                    f.write(f"{article['Content']}\n\n")
+                    f.write("---\n\n")
+
+            print(f"✅ Saved Markdown: {md_path}")
 
     def visualize_topics(self, run_number):
         """Generate visualizations and save them to charts/ subfolder."""
@@ -152,20 +173,38 @@ class TopicModelingPipeline:
         topics_vis = self.topic_model.visualize_topics()
         topics_vis.write_html(f"charts/topic_map_run{run_number}.html")
 
-    def run_pipeline(self, save=True):
+    def run_pipeline(self, evaluation_df: pd.DataFrame, save=True):
         """Execute the entire topic modeling pipeline."""
         self.load_articles()
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
-        self.identify_top_topics(num_topics=10)
-        self.evaluate_model()
-        self.visualize_topics(run_number=10)
+        self.identify_top_topics(num_topics=3)
+        #self.evaluate_all_metrics(evaluation_df)
         if save:
+            #self.visualize_topics(run_number=10)
             self.save_articles_by_topic()
 
 # Execute the pipeline
 if __name__ == "__main__":
     # week_value = ["10/02 - 16/02", "17/02 - 23/02", "24/02 - 02/03"]
-    week_value = "17/02 - 23/02"
-    pipeline = TopicModelingPipeline(week_value)
-    pipeline.run_pipeline(save=False)
+    evaluation_df = pd.DataFrame(columns=[
+        "Week", "Coherence", "Diversity", "Redundancy", "BERTScore"
+    ])
+    pipeline = TopicModelingPipeline("24/02 - 02/03")
+    pipeline.run_pipeline(evaluation_df)
+
+    # Running for several weeks at once:
+    # weeks = ["10/02 - 16/02", "17/02 - 23/02", "24/02 - 02/03"]
+    #
+    # for week in weeks:
+    #     pipeline = TopicModelingPipeline(week)
+    #     pipeline.run_pipeline(evaluation_df, save=False)
+    #
+    # # Compute mean metrics
+    # mean_row = evaluation_df.drop(columns=["Week"]).mean()
+    # mean_row["Week"] = "Mean"
+    # evaluation_df.loc[len(evaluation_df)] = mean_row
+    #
+    # # Print final table
+    # print("\n📊 Evaluation Results Summary:")
+    # print(evaluation_df)
