@@ -15,12 +15,17 @@ from gensim.models.coherencemodel import CoherenceModel
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from bertopic import BERTopic
+from bert_score import score
 import numpy as np
 import random
 
 # Ensure stopwords are downloaded
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
+
+# Ignore loggings unrelated to errors to not clutter outputs
+import logging
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
 
 def clean_text(text):
@@ -34,6 +39,10 @@ def clean_text(text):
     text = unicodedata.normalize("NFKD", text)
     # Remove punctuation (but keep words and spaces)
     text = re.sub(r'[^\w\s]', '', text)
+    # Remove stopwords (preserve case)
+    text = " ".join([word for word in text.split() if word.lower() not in stop_words])
+    # Remove extra whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
 
     return text
 
@@ -180,3 +189,35 @@ def evaluate_stability(topic_model: BERTopic, texts: list, model, reruns=3, samp
     stability = np.mean(jaccard_scores)
     print(f"📈 Avg Topic Stability (Jaccard): {stability:.4f}")
     return stability
+
+def evaluate_topic_quality_with_bertscore(topic_model, top_n=10, top_docs=5):
+    from bert_score import score
+
+    topic_scores = []
+
+    for topic_id in topic_model.get_topics().keys():
+        if topic_id == -1:  # Skip outliers/noise
+            continue
+
+        # Get top-N keywords
+        keywords = [word for word, _ in topic_model.get_topic(topic_id)[:top_n]]
+        keyword_string = ", ".join(keywords)
+
+        # Get representative documents
+        rep_docs = topic_model.get_representative_docs(topic_id)
+        if not rep_docs:
+            continue
+
+        # Take top M representative docs (up to top_docs)
+        selected_docs = rep_docs[:top_docs]
+
+        # Compute BERTScore for each document
+        for doc in selected_docs:
+            _, _, F1 = score([keyword_string], [doc], lang="en", verbose=False)
+            topic_scores.append(F1.item())
+
+    # Average across all scores
+    avg_score = sum(topic_scores) / len(topic_scores) if topic_scores else 0
+    print(f"🔁 Average BERTScore F1 across all topics and docs: {avg_score:.4f}")
+    return avg_score
+
