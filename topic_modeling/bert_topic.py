@@ -108,12 +108,13 @@ class TopicModelingPipeline:
             topic_keywords = ", ".join([word[0] for word in topic_words[:8]])
             print(f"📌 **Topic {topic}:** {topic_keywords}")
 
-            rep_docs = self.topic_model.get_representative_docs(topic)
-            print("   🔹 Example Articles:")
-            for i, doc in enumerate(rep_docs[:2]):
-                preview = " ".join(doc.split()[:50]) + "..."
-                print(f"     {i + 1}. {preview}\n")
-        print("\n")
+            print("   🔹 Top Article Titles:")
+            topic_articles = self.df[self.df["Topic"] == topic].head(15)
+
+            for i, title in enumerate(topic_articles["Title"]):
+                print(f"     {i + 1}. {title}")
+            print("\n")
+
 
     def evaluate_all_metrics(self, evaluation_results_df: pd.DataFrame):
         """Evaluate all metrics and append results to a shared DataFrame."""
