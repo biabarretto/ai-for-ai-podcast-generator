@@ -1,9 +1,11 @@
 from sentence_transformers import SentenceTransformer
 from bertopic import BERTopic
+from bert_score import score
 import pandas as pd
 import json
 from utils import get_articles, evaluate_coherence, evaluate_diversity_redundancy, evaluate_topic_quality_with_bertscore
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import MinMaxScaler
 from bertopic.vectorizers import ClassTfidfTransformer
 import os
 from hdbscan import HDBSCAN
@@ -115,6 +117,57 @@ class TopicModelingPipeline:
                 print(f"     {i + 1}. {title}")
             print("\n")
 
+    def select_top_topics_by_score(self, num_topics=3):
+        """Select top N topics using a composite score from log-scaled size and BERTScore."""
+
+        print("📊 Selecting top topics using composite relevance score...")
+
+        topic_freq = self.topic_model.get_topic_freq()
+        topic_freq = topic_freq[topic_freq["Topic"] != -1]  # Exclude outliers
+
+        # Compute BERTScore per topic
+        bert_scores = {}
+        for topic_id in topic_freq["Topic"]:
+            rep_docs = self.topic_model.get_representative_docs(topic_id)
+            if not rep_docs:
+                continue
+            keywords = ", ".join([word for word, _ in self.topic_model.get_topic(topic_id)[:8]])
+            selected_docs = rep_docs[:5]
+            scores = []
+            for doc in selected_docs:
+                _, _, F1 = score([keywords], [doc], lang="en", verbose=False)
+                scores.append(F1.item())
+            bert_scores[topic_id] = sum(scores) / len(scores) if scores else 0
+
+        # Add BERTScore to DataFrame
+        topic_freq["BERTScore"] = topic_freq["Topic"].map(bert_scores).fillna(0)
+
+        # Apply log transform to topic size
+        topic_freq["LogCount"] = topic_freq["Count"].apply(lambda x: np.log1p(x))
+
+        # Normalize both LogCount and BERTScore
+        scaler = MinMaxScaler()
+        topic_freq[["Size_Score", "BERT_Score_Norm"]] = scaler.fit_transform(
+            topic_freq[["LogCount", "BERTScore"]]
+        )
+
+        # Compute composite RelevanceScore
+        topic_freq["RelevanceScore"] = (
+                0.4 * topic_freq["Size_Score"] + 0.6 * topic_freq["BERT_Score_Norm"]
+        )
+
+        # Sort and select top N
+        topic_freq = topic_freq.sort_values("RelevanceScore", ascending=False)
+        self.top_topics = topic_freq.head(num_topics)
+
+        print("\n🔹 Selected Top Topics by Relevance Score:")
+        for topic, rel_score in zip(self.top_topics["Topic"], self.top_topics["RelevanceScore"]):
+            keywords = ", ".join([word for word, _ in self.topic_model.get_topic(topic)[:6]])
+            print(f"📌 Topic {topic} — Score: {rel_score:.4f} — Keywords: {keywords}")
+            print("   🔹 Top Article Titles:")
+            topic_articles = self.df[self.df["Topic"] == topic].head(5)
+            for i, title in enumerate(topic_articles["Title"]):
+                print(f"     {i + 1}. {title}")
 
     def evaluate_all_metrics(self, evaluation_results_df: pd.DataFrame):
         """Evaluate all metrics and append results to a shared DataFrame."""
@@ -179,7 +232,7 @@ class TopicModelingPipeline:
         self.load_articles()
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
-        self.identify_top_topics(num_topics=3)
+        self.select_top_topics_by_score()
         #self.evaluate_all_metrics(evaluation_df)
         if save:
             #self.visualize_topics(run_number=10)
