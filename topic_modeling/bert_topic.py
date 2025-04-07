@@ -118,9 +118,9 @@ class TopicModelingPipeline:
             print("\n")
 
     def select_top_topics_by_score(self, num_topics=3):
-        """Select top N topics using a composite score from log-scaled size and BERTScore."""
+        """Select top N topics using a composite score from penalized size and BERTScore."""
 
-        print("📊 Selecting top topics using composite relevance score...")
+        print("📊 Selecting top topics using composite relevance score with size penalty...")
 
         topic_freq = self.topic_model.get_topic_freq()
         topic_freq = topic_freq[topic_freq["Topic"] != -1]  # Exclude outliers
@@ -145,22 +145,27 @@ class TopicModelingPipeline:
         # Apply log transform to topic size
         topic_freq["LogCount"] = topic_freq["Count"].apply(lambda x: np.log1p(x))
 
-        # Normalize both LogCount and BERTScore
+        # Normalize both metrics
         scaler = MinMaxScaler()
         topic_freq[["Size_Score", "BERT_Score_Norm"]] = scaler.fit_transform(
             topic_freq[["LogCount", "BERTScore"]]
         )
 
-        # Compute composite RelevanceScore
+        # Penalize topics above size threshold
+        size_threshold = topic_freq["Count"].quantile(0.75)
+        topic_freq["Penalty"] = topic_freq["Count"].apply(lambda x: 0.7 if x > size_threshold else 1.0)
+        topic_freq["Size_Score_Penalized"] = topic_freq["Size_Score"] * topic_freq["Penalty"]
+
+        # Final relevance score with penalty applied
         topic_freq["RelevanceScore"] = (
-                0.4 * topic_freq["Size_Score"] + 0.6 * topic_freq["BERT_Score_Norm"]
+                0.4 * topic_freq["Size_Score_Penalized"] + 0.6 * topic_freq["BERT_Score_Norm"]
         )
 
         # Sort and select top N
         topic_freq = topic_freq.sort_values("RelevanceScore", ascending=False)
         self.top_topics = topic_freq.head(num_topics)
 
-        print("\n🔹 Selected Top Topics by Relevance Score:")
+        print("\n🔹 Selected Top Topics by Relevance Score (with penalty):")
         for topic, rel_score in zip(self.top_topics["Topic"], self.top_topics["RelevanceScore"]):
             keywords = ", ".join([word for word, _ in self.topic_model.get_topic(topic)[:6]])
             print(f"📌 Topic {topic} — Score: {rel_score:.4f} — Keywords: {keywords}")
