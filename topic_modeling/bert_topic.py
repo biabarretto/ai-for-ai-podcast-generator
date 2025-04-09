@@ -124,6 +124,7 @@ class TopicModelingPipeline:
 
         topic_freq = self.topic_model.get_topic_freq()
         topic_freq = topic_freq[topic_freq["Topic"] != -1]  # Exclude outliers
+        print(f"Number of topics identified: {len(topic_freq)}")
 
         # Compute BERTScore per topic
         bert_scores = {}
@@ -168,7 +169,8 @@ class TopicModelingPipeline:
         print("\n🔹 Selected Top Topics by Relevance Score (with penalty):")
         for topic, rel_score in zip(self.top_topics["Topic"], self.top_topics["RelevanceScore"]):
             keywords = ", ".join([word for word, _ in self.topic_model.get_topic(topic)[:6]])
-            print(f"📌 Topic {topic} — Score: {rel_score:.4f} — Keywords: {keywords}")
+            n_articles = topic_freq[topic_freq["Topic"] == topic]["Count"].values[0]
+            print(f"📌 Topic {topic} — Size: {n_articles} — Score: {rel_score:.4f} — Keywords: {keywords}")
             print("   🔹 Top Article Titles:")
             topic_articles = self.df[self.df["Topic"] == topic].head(5)
             for i, title in enumerate(topic_articles["Title"]):
@@ -240,7 +242,7 @@ class TopicModelingPipeline:
         self.select_top_topics_by_score()
         #self.evaluate_all_metrics(evaluation_df)
         if save:
-            #self.visualize_topics(run_number=10)
+            self.visualize_topics(run_number=11)
             self.save_articles_by_topic()
 
 # Execute the pipeline
@@ -249,7 +251,7 @@ if __name__ == "__main__":
     evaluation_df = pd.DataFrame(columns=[
         "Week", "Coherence", "Diversity", "Redundancy", "BERTScore"
     ])
-    pipeline = TopicModelingPipeline("24/02 - 02/03")
+    pipeline = TopicModelingPipeline("17/02 - 23/02")
     pipeline.run_pipeline(evaluation_df)
 
     # Running for several weeks at once:
