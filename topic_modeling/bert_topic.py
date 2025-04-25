@@ -16,7 +16,7 @@ import random
 random.seed(42)
 np.random.seed(42)
 class TopicModelingPipeline:
-    """Pipeline for retrieving, processing, and group articles using BERTopic."""
+    """Pipeline to retrieve, process, and group articles using BERTopic."""
 
     def __init__(self, week_value, embedding_model='all-mpnet-base-v2'):
         self.week_value = week_value
@@ -243,32 +243,16 @@ class TopicModelingPipeline:
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
         self.select_top_topics_by_score()
-        #self.evaluate_all_metrics(evaluation_df)
+        self.evaluate_all_metrics(evaluation_df)
         if save:
             self.visualize_topics(run_number=12)
-            #self.save_articles_by_topic()
+            self.save_articles_by_topic()
 
 # Execute the pipeline
 if __name__ == "__main__":
-    # week_value = ["10/02 - 16/02", "17/02 - 23/02", "24/02 - 02/03"]
     evaluation_df = pd.DataFrame(columns=[
         "Week", "Coherence", "Diversity", "Redundancy", "BERTScore"
     ])
     pipeline = TopicModelingPipeline("24/02 - 02/03")
     pipeline.run_pipeline(evaluation_df)
 
-    # Running for several weeks at once:
-    # weeks = ["10/02 - 16/02", "17/02 - 23/02", "24/02 - 02/03"]
-    #
-    # for week in weeks:
-    #     pipeline = TopicModelingPipeline(week)
-    #     pipeline.run_pipeline(evaluation_df, save=False)
-    #
-    # # Compute mean metrics
-    # mean_row = evaluation_df.drop(columns=["Week"]).mean()
-    # mean_row["Week"] = "Mean"
-    # evaluation_df.loc[len(evaluation_df)] = mean_row
-    #
-    # # Print final table
-    # print("\n📊 Evaluation Results Summary:")
-    # print(evaluation_df)

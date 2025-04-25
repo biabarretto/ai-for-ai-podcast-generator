@@ -98,10 +98,12 @@ def get_articles(week_values):
         )
         articles.append(article)
 
+        # Select text used in the topic modeling
         full_text = f"{clean_plain_text(article.title)} {article.description}"
+        # Remove text stating the source of the article
         marker = f"The post {clean_plain_text(article.title)}"
         cut_text = full_text.split(marker)[0].strip()
-
+        # Save final text to be used
         texts.append(clean_text(cut_text))
 
     return articles, texts

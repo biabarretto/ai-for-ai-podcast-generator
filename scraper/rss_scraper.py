@@ -109,7 +109,8 @@ class RSSScraper:
         """ Converts the article content from HTML to markdown and removes unwanted content such as images and links """
         content = entry.content[0].value if "content" in entry else "No content available"
         markdown_content = md(content)
-        markdown_no_images = re.sub(r'!\[.*?\]\((https?:\/\/[^\)]+\.(?:png|jpg|jpeg|gif|svg|webp|bmp|ico|tiff))\)', '', markdown_content, flags=re.IGNORECASE)
+        markdown_no_images = re.sub(r'!\[.*?\]\((https?:\/\/[^\)]+\.(?:png|jpg|jpeg|gif|svg|webp|bmp|ico|tiff))\)',
+                                    '', markdown_content, flags=re.IGNORECASE)
         markdown_no_links = re.sub(r'\[([^\]]+)\]\((https?:\/\/[^\)]+)\)', r'\1', markdown_no_images)
         return markdown_no_links
 

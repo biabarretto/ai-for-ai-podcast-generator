@@ -5,7 +5,7 @@ import pandas as pd
 import json
 
 
-from utils import get_articles, clean_text, compute_coherence_score
+from topic_modeling.utils import get_articles, clean_text, compute_coherence_score
 
 
 class TopicModelingPipeline:
@@ -157,6 +157,6 @@ class TopicModelingPipeline:
 # Execute the pipeline
 if __name__ == "__main__":
     week_value = "17/02 - 23/02"
-    pipeline = TopicModelingPipeline(week_value, 'training_data_2.csv')
+    pipeline = TopicModelingPipeline(week_value, 'training_data.csv')
     pipeline.run_pipeline()
 
