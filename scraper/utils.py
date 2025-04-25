@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 from data_model.database import DB_PATH
 from data_model.models import ScrapedArticle
 
-__all__ = ["clean_html_content", "insert_articles", "get_articles", "get_week_range", "remove_post_footer"]  # Specify what to export when calling file
+__all__ = ["clean_html_content", "insert_articles", "get_week_range", "remove_post_footer"]  # Specify what to export when calling file
 
 def insert_articles(articles: list[ScrapedArticle]):
-    """Insert a list of articles into SQLite."""
+    """ Insert a list of articles into SQLite """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -44,33 +44,6 @@ def insert_articles(articles: list[ScrapedArticle]):
     finally:
         conn.close()
 
-
-
-def get_articles():
-    """Retrieve all stored articles from the database."""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT source, link, title, category, description, content, pub_date, scraped_date, week FROM articles")
-    rows = cursor.fetchall()
-
-    articles = []
-    for row in rows:
-        article = ScrapedArticle(
-            source=row[0],
-            link=row[1],
-            title=row[2],
-            category=row[3].split(", "),  # Convert back to list
-            description=row[4],
-            content=row[5],
-            pub_date=datetime.fromisoformat(row[6]),
-            scraped_date=datetime.fromisoformat(row[7]),
-            week=row[8]
-        )
-        articles.append(article)
-
-    conn.close()
-    return articles
 
 
 def remove_post_footer(html_content):
