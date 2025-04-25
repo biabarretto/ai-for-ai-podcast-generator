@@ -16,7 +16,12 @@ class ScrapedArticle(BaseModel):
     @field_validator("category", mode="before")
     @classmethod
     def category_to_string(cls, value: Union[str, List[str], None]):
-        """Ensure category is a list of strings"""
+        """Normalize the 'category' field to a list of strings.
+
+        If a comma-separated string is provided, convert it into a list.
+        If it's already a list, ensure all elements are strings.
+        If None or invalid, return an empty list.
+        """
         if isinstance(value, str):
             return value.split(", ")  # Convert stored string back into a list
         elif isinstance(value, list):

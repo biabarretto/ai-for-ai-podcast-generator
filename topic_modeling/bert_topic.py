@@ -16,23 +16,25 @@ import random
 random.seed(42)
 np.random.seed(42)
 class TopicModelingPipeline:
-    """Pipeline for retrieving, processing, and analyzing articles using BERTopic."""
+    """Pipeline for retrieving, processing, and group articles using BERTopic."""
 
     def __init__(self, week_value, embedding_model='all-mpnet-base-v2'):
         self.week_value = week_value
         self.articles = []
         self.texts = []
-        self.embedding_model = embedding_model  # all-MiniLM-L6-v2
+        self.embedding_model = embedding_model
         self.model = SentenceTransformer(self.embedding_model)
 
+        # define vectorizer
         stop_words = ["ai", "language", "model", "models", "data", "tools", "research", "million",
                       "intelligence", "researchers", "interview", "series"]
         vectorizer = CountVectorizer(
             stop_words=stop_words,  # exclude generic words when extracting top-n words for each topic
             ngram_range=(1, 2),  # capture "language model", "deep learning"
-            min_df=0.03,  # exclude words that don't appear in at least this amount of documents
+            min_df=0.03,  # exclude words that don't appear in at least 3% of documents
             max_df=0.8  # remove any word that appears in more than 80% of all documents
         )
+
         # bert topic with hdbscan and umap
         hdbscan_model = HDBSCAN(min_cluster_size=5, min_samples=1, prediction_data=True)
         self.topic_model = BERTopic(
@@ -49,13 +51,14 @@ class TopicModelingPipeline:
 
     def load_articles(self):
         """Retrieve and prepare articles for topic modeling."""
+        # Retrieve articles from the db for the given week
         self.articles, self.texts = get_articles(self.week_value)
         # Remove invalid or empty text entries
         valid_texts_with_indices = [(i, t) for i, t in enumerate(self.texts) if isinstance(t, str) and t.strip()]
         valid_indices, self.texts = zip(*valid_texts_with_indices) if valid_texts_with_indices else ([], [])
-
         # Filter corresponding articles to stay aligned
         self.articles = [self.articles[i] for i in valid_indices]
+
         print(f"Loaded {len(self.articles)} articles for week: {self.week_value}")
 
     def generate_embeddings(self):
@@ -228,7 +231,7 @@ class TopicModelingPipeline:
         """Generate visualizations and save them to charts/ subfolder."""
         os.makedirs("charts", exist_ok=True)
 
-        bar_chart = self.topic_model.visualize_barchart()
+        bar_chart = self.topic_model.visualize_barchart(top_n_topics=None)
         bar_chart.write_html(f"charts/bar_chart_run{run_number}.html")
 
         topics_vis = self.topic_model.visualize_topics()
@@ -242,8 +245,8 @@ class TopicModelingPipeline:
         self.select_top_topics_by_score()
         #self.evaluate_all_metrics(evaluation_df)
         if save:
-            self.visualize_topics(run_number=11)
-            self.save_articles_by_topic()
+            self.visualize_topics(run_number=12)
+            #self.save_articles_by_topic()
 
 # Execute the pipeline
 if __name__ == "__main__":
@@ -251,7 +254,7 @@ if __name__ == "__main__":
     evaluation_df = pd.DataFrame(columns=[
         "Week", "Coherence", "Diversity", "Redundancy", "BERTScore"
     ])
-    pipeline = TopicModelingPipeline("17/02 - 23/02")
+    pipeline = TopicModelingPipeline("24/02 - 02/03")
     pipeline.run_pipeline(evaluation_df)
 
     # Running for several weeks at once:

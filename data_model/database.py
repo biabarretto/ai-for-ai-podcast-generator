@@ -1,5 +1,6 @@
 import sqlite3
 
+# Note: change the path to where your data is stored locally
 DB_PATH = r"G:\My Drive\scraped_articles.db"
 
 
