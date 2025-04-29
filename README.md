@@ -16,6 +16,8 @@ scraper/: Code to scrape and preprocess data from various sources and save it in
 
 topic_modeling/: Code for BERTopic.
 
+archive/: Additional scripts used not essential to the main pipeline (attempt to finetune embeddings, script to collect articles from other sources for a given week to compare with podcast output)
+
 README.md: Project documentation.
 
 LICENSE: MIT License

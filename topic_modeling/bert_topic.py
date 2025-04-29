@@ -61,31 +61,22 @@ class TopicModelingPipeline:
         print(f"Loaded {len(self.articles)} articles for week: {self.week_value}")
 
     def generate_embeddings(self):
-        """Generate or load embeddings for one or multiple weeks of articles."""
-        week_values = self.week_value if isinstance(self.week_value, list) else [self.week_value]
-        all_embeddings = []
-
-        # Ensure the embeddings folder exists
+        """Generate or load embeddings for the given week."""
         os.makedirs("embeddings", exist_ok=True)
+        safe_week = self.week_value.replace("/", "-")
+        embedding_path = os.path.join("embeddings", f"embeddings_{self.embedding_model}_{safe_week}.npy")
 
-        # Save embeddings for each week
-        for week in week_values:
-            safe_week = week.replace("/", "-")
-            embedding_path = os.path.join("embeddings", f"embeddings_{self.embedding_model}_{safe_week}.npy")
+        week_texts = [text for article, text in zip(self.articles, self.texts) if article.week == self.week_value]
 
-            week_texts = [text for article, text in zip(self.articles, self.texts) if article.week == week]
+        if os.path.exists(embedding_path):
+            print(f"\U0001F4C2 Loading cached embeddings for {self.week_value}...")
+            embeddings = np.load(embedding_path)
+        else:
+            print(f"⚙️ Generating embeddings for {self.week_value}...")
+            embeddings = self.model.encode(week_texts, show_progress_bar=True)
+            np.save(embedding_path, embeddings)
 
-            if os.path.exists(embedding_path):
-                print(f"📂 Loading cached embeddings for {week}...")
-                embeddings = np.load(embedding_path)
-            else:
-                print(f"⚙️ Generating embeddings for {week}...")
-                embeddings = self.model.encode(week_texts, show_progress_bar=True)
-                np.save(embedding_path, embeddings)
-
-            all_embeddings.extend(embeddings)
-
-        return np.array(all_embeddings)
+        return np.array(embeddings)
 
     def fit_model(self, embeddings):
         """Fit BERTopic model to the text embeddings."""
@@ -179,23 +170,18 @@ class TopicModelingPipeline:
             for i, title in enumerate(topic_articles["Title"]):
                 print(f"     {i + 1}. {title}")
 
-    def evaluate_all_metrics(self, evaluation_results_df: pd.DataFrame):
-        """Evaluate all metrics and append results to a shared DataFrame."""
-        print(f"📊 Running evaluation for: {self.week_value}")
+    def evaluate_all_metrics(self):
+        """Evaluate and print all metrics for the current week's topic model."""
+        print("📊 Running evaluation...")
 
         coherence = evaluate_coherence(self.topic_model, self.texts)
         diversity, redundancy = evaluate_diversity_redundancy(self.topic_model)
         bertscore = evaluate_topic_quality_with_bertscore(self.topic_model)
 
-        row = {
-            "Week": self.week_value,
-            "Coherence": coherence,
-            "Diversity": diversity,
-            "Redundancy": redundancy,
-            "BERTScore": bertscore
-        }
-
-        evaluation_results_df.loc[len(evaluation_results_df)] = row
+        print(f"🔹 Coherence: {coherence:.4f}")
+        print(f"🔹 Diversity: {diversity:.4f}")
+        print(f"🔹 Redundancy: {redundancy:.4f}")
+        print(f"🔹 BERTScore: {bertscore:.4f}")
 
     def save_articles_by_topic(self):
         """Group articles by top topics and save them in Markdown format for NotebookLM."""
@@ -227,32 +213,30 @@ class TopicModelingPipeline:
 
             print(f"✅ Saved Markdown: {md_path}")
 
-    def visualize_topics(self, run_number):
+    def visualize_topics(self):
         """Generate visualizations and save them to charts/ subfolder."""
         os.makedirs("charts", exist_ok=True)
+        safe_week = self.week_value.replace("/", "-")
 
         bar_chart = self.topic_model.visualize_barchart(top_n_topics=None)
-        bar_chart.write_html(f"charts/bar_chart_run{run_number}.html")
+        bar_chart.write_html(f"charts/bar_chart_{safe_week}.html")
 
         topics_vis = self.topic_model.visualize_topics()
-        topics_vis.write_html(f"charts/topic_map_run{run_number}.html")
+        topics_vis.write_html(f"charts/topic_map_{safe_week}.html")
 
-    def run_pipeline(self, evaluation_df: pd.DataFrame, save=True):
+    def run_pipeline(self, save=True):
         """Execute the entire topic modeling pipeline."""
         self.load_articles()
         embeddings = self.generate_embeddings()
         self.fit_model(embeddings)
         self.select_top_topics_by_score()
-        self.evaluate_all_metrics(evaluation_df)
+        self.evaluate_all_metrics()
         if save:
-            self.visualize_topics(run_number=12)
+            self.visualize_topics()
             self.save_articles_by_topic()
 
 # Execute the pipeline
 if __name__ == "__main__":
-    evaluation_df = pd.DataFrame(columns=[
-        "Week", "Coherence", "Diversity", "Redundancy", "BERTScore"
-    ])
-    pipeline = TopicModelingPipeline("24/02 - 02/03")
-    pipeline.run_pipeline(evaluation_df)
+    pipeline = TopicModelingPipeline("24/03 - 30/03")  # use MM/DD - MM/DD format
+    pipeline.run_pipeline()
 

@@ -1240,6 +1240,21 @@ test = ["POT", "pytest", "pytest-cov", "testfixtures", "visdom (>=0.1.8,!=0.1.8.
 test-win = ["POT", "pytest", "pytest-cov", "testfixtures"]
 
 [[package]]
+name = "googlesearch-python"
+version = "1.3.0"
+description = "A Python library for scraping the Google search engine."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "googlesearch_python-1.3.0-py3-none-any.whl", hash = "sha256:808c4dd390dc4c6a1cfba2f5151f5ef16dceb0a200d9770b388dcd39162b4e19"},
+    {file = "googlesearch_python-1.3.0.tar.gz", hash = "sha256:c5729b1247c2a8f5c4b48ed73c4f8e9fd558ac4e09de67865479f0a33f2d97dc"},
+]
+
+[package.dependencies]
+beautifulsoup4 = ">=4.9"
+requests = ">=2.20"
+
+[[package]]
 name = "h11"
 version = "0.14.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
@@ -5049,4 +5064,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "4eab0896f4b771cf20d6c3ad9c4ec8adbd3dabf91170ca8b0f26514e68ba1090"
+content-hash = "ec63a3184512a1c5b5e914129bc9b5f57443753de2ac5c1f6cbb9c2d1a338878"
