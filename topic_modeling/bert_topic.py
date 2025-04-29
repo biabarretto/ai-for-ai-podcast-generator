@@ -2,7 +2,6 @@ from sentence_transformers import SentenceTransformer
 from bertopic import BERTopic
 from bert_score import score
 import pandas as pd
-import json
 from utils import get_articles, evaluate_coherence, evaluate_diversity_redundancy, evaluate_topic_quality_with_bertscore
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import MinMaxScaler
@@ -69,6 +68,7 @@ class TopicModelingPipeline:
         # Ensure the embeddings folder exists
         os.makedirs("embeddings", exist_ok=True)
 
+        # Save embeddings for each week
         for week in week_values:
             safe_week = week.replace("/", "-")
             embedding_path = os.path.join("embeddings", f"embeddings_{self.embedding_model}_{safe_week}.npy")

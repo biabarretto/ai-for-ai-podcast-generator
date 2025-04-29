@@ -73,10 +73,10 @@ python topic_modeling/bert_topic.py
 Topics are scored and ranked to select the top 3 for summarization.
 
 For each topic, a markdown file will be saved in the `topics/` folder, under the `topic_modeling/` folder. 
-They can be directly uploaded into Google NotebookLM for podcast generation:
+They can be directly uploaded into Google NotebookLM for podcast generation.
 
 
-### 7. Upload to NotebookLM
+### 6. Upload to NotebookLM
 
 Visit [notebooklm.google.com](https://notebooklm.google.com/), upload the three markdown files, and use this instruction template to guide podcast creation:
 
