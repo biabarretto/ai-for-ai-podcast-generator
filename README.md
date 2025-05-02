@@ -16,7 +16,7 @@ scraper/: Code to scrape and preprocess data from various sources and save it in
 
 topic_modeling/: Code for BERTopic.
 
-archive/: Additional scripts used not essential to the main pipeline (attempt to finetune embeddings, script to collect articles from other sources for a given week to compare with podcast output)
+archive/: Additional scripts used but that are not essential to the main pipeline (attempt to finetune embeddings, script to collect articles from other sources to compare with podcast output)
 
 README.md: Project documentation.
 
@@ -40,7 +40,7 @@ poetry install
 poetry shell
 ```
 
-### 3. Create the Scarped Articles Database
+### 3. Create the Scraped Articles Database
 
 Set up the SQLite database where the scraped articles will be stored. 
 Remember to change the DB_PATH variable to a valid path where you want the table to be stored:
