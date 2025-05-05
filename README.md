@@ -137,3 +137,10 @@ However, here is a mock sample of the schema used for storage and processing for
 - **Embedding Model**: Default is `all-mpnet-base-v2` in `topic_modeling/bert_topic.py`, can be changed by passing a different model to the embedding_model variable when instantiating the TopicModelingPipeline object.
 - **Custom Stop Words**: Defined in the init method of the TopicModelingPipeline class, useful for filtering domain-specific noise.
 
+## 🎧 Sample Podcasts
+
+Bellow you can find the links to listen to different podcast generations:
+- Week 10/02/2025: https://notebooklm.google.com/notebook/f129d8f1-0fd0-4b0d-a10a-cbcf059ab72c/audio
+- Week 17/02/2025: https://notebooklm.google.com/notebook/accbbd48-13ac-450e-a7a0-9a083c8cdaaf/audio
+- Week 24/02/2025: https://notebooklm.google.com/notebook/74fcf734-4000-453b-add6-48c97f885066/audio 
+- Week 24/03/2025: https://notebooklm.google.com/notebook/56d624d7-8623-4214-a721-7444106d3c7e/audio 
